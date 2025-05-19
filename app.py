@@ -1,13 +1,13 @@
-from flask import Flask, request, render_template, send_from_directory, render_template_string, redirect, url_for
+from flask import Flask, request, render_template, send_from_directory, redirect, url_for
 import yt_dlp
 import os
 import subprocess
-import re
 import shutil
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/downloads/individuales'
 
+# Carpetas
 DOWNLOAD_FOLDER = 'static/downloads'
 INDIVIDUAL_FOLDER = os.path.join(DOWNLOAD_FOLDER, 'individuales')
 ACAPELLAS_FOLDER = os.path.join(DOWNLOAD_FOLDER, 'acapellas')
@@ -20,6 +20,7 @@ os.makedirs(INDIVIDUAL_FOLDER, exist_ok=True)
 os.makedirs(ACAPELLAS_FOLDER, exist_ok=True)
 os.makedirs(INSTRUMENTALES_FOLDER, exist_ok=True)
 
+# Verificar que FFmpeg esté disponible
 def check_ffmpeg():
     try:
         subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -53,11 +54,40 @@ def single_download():
             }],
             'quiet': True,
         }) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = f"{info['title']}.mp3"
+            ydl.extract_info(url, download=True)
             return redirect(url_for('index'))
     except Exception as e:
         return f"Error al descargar: {str(e)}", 500
+
+@app.route('/playlist_download', methods=['POST'])
+def playlist_download():
+    url = request.form['playlist_url']
+    if not url:
+        return "URL de playlist inválida", 400
+
+    try:
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            playlist_title = info.get('title', 'playlist_sin_nombre').replace('/', '_')
+            playlist_folder = os.path.join(DOWNLOAD_FOLDER, 'playlists', playlist_title)
+            os.makedirs(playlist_folder, exist_ok=True)
+
+        with yt_dlp.YoutubeDL({
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(playlist_folder, '%(title)s.%(ext)s'),
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'quiet': True,
+        }) as ydl:
+            ydl.download([url])
+
+        return redirect(url_for('index'))
+
+    except Exception as e:
+        return f"Error al descargar playlist: {str(e)}", 500
 
 @app.route('/subir_y_separar', methods=['POST'])
 def subir_y_separar():
@@ -69,14 +99,21 @@ def subir_y_separar():
         return "Nombre de archivo vacío", 400
 
     if archivo and archivo.filename.endswith('.mp3'):
-        filepath = os.path.join(INDIVIDUAL_FOLDER, archivo.filename)
+        # Limpiar nombre
+        nombre_limpio = archivo.filename.replace("｜", "").replace("|", "").replace("?", "").replace(":", "").strip()
+        filepath = os.path.join(INDIVIDUAL_FOLDER, nombre_limpio)
         archivo.save(filepath)
 
         try:
-            subprocess.run(['demucs', filepath], check=True)
-            nombre_base = os.path.splitext(archivo.filename)[0]
+            # Ejecutar Demucs
+            filepath_abs = os.path.abspath(filepath)
+            subprocess.run(['python', '-m', 'demucs', filepath_abs], check=True)
+
+            # Carpeta de salida de Demucs
+            nombre_base = os.path.splitext(nombre_limpio)[0]
             resultados_dir = os.path.join('separated', 'htdemucs', nombre_base)
 
+            # Archivos separados esperados
             vocals = os.path.join(resultados_dir, 'vocals.wav')
             no_vocals = os.path.join(resultados_dir, 'no_vocals.wav')
 
@@ -86,6 +123,7 @@ def subir_y_separar():
             if os.path.exists(no_vocals):
                 shutil.move(no_vocals, os.path.join(INSTRUMENTALES_FOLDER, f'{nombre_base}.wav'))
 
+            # Limpiar carpeta de salida
             shutil.rmtree(resultados_dir, ignore_errors=True)
 
         except Exception as e:

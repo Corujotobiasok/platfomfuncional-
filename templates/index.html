@@ -74,11 +74,18 @@
 <body>
     <h1>🎵 Music Tools</h1>
 
-    <!-- Descarga desde YouTube -->
+    <!-- Descarga canción individual -->
     <form method="POST" action="/single_download">
         <label for="youtube_url">Descargar canción de YouTube:</label><br>
         <input type="text" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
         <button type="submit">Descargar</button>
+    </form>
+
+    <!-- Descarga playlist -->
+    <form method="POST" action="/playlist_download">
+        <label for="playlist_url">Descargar playlist de YouTube Music:</label><br>
+        <input type="text" id="playlist_url" name="playlist_url" placeholder="https://music.youtube.com/playlist?list=..." required>
+        <button type="submit">Descargar Playlist</button>
     </form>
 
     <!-- Subir archivo local y procesar -->
@@ -91,7 +98,7 @@
         </form>
     </div>
 
-    <!-- Canciones descargadas para seleccionar -->
+    <!-- Canciones descargadas -->
     <div class="section">
         <h2>🎶 Canciones descargadas</h2>
         {% if archivos %}
