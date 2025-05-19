@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Descargador y Separador de Música</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            background: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"], select, input[type="file"] {
+            width: 80%;
+            padding: 8px;
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .section {
+            margin-top: 40px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>🎵 Music Tools</h1>
+
+    <!-- Descarga desde YouTube -->
+    <form method="POST" action="/single_download">
+        <label for="youtube_url">Descargar canción de YouTube:</label><br>
+        <input type="text" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+        <button type="submit">Descargar</button>
+    </form>
+
+    <!-- Subir archivo local y procesar -->
+    <div class="section">
+        <h2>📂 Subir y Separar Acapella / Instrumental</h2>
+        <form method="POST" action="/subir_y_separar" enctype="multipart/form-data">
+            <label for="archivo">Selecciona un archivo MP3:</label><br>
+            <input type="file" id="archivo" name="archivo" accept=".mp3" required>
+            <button type="submit">Subir y Separar</button>
+        </form>
+    </div>
+
+    <!-- Canciones descargadas para seleccionar -->
+    <div class="section">
+        <h2>🎶 Canciones descargadas</h2>
+        {% if archivos %}
+            <ul>
+                {% for archivo in archivos %}
+                    <li>
+                        <a href="/downloads/individuales/{{ archivo }}" download>{{ archivo }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No hay archivos disponibles.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
